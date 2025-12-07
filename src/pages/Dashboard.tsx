@@ -6,6 +6,7 @@ import { QuizCard } from '@/components/quiz/QuizCard';
 import { Plus, LogOut, Zap, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Quiz } from '@/types/quiz';
+import { DbQuiz } from '@/types/database';
 import { User } from '@supabase/supabase-js';
 
 const Dashboard = () => {
@@ -45,9 +46,10 @@ const Dashboard = () => {
     if (error) {
       toast.error('Failed to load quizzes');
     } else if (data) {
-      const parsedQuizzes = data.map((q) => ({
+      const typedData = data as unknown as DbQuiz[];
+      const parsedQuizzes = typedData.map((q) => ({
         id: q.id,
-        ...(q.quiz_data as Omit<Quiz, 'id'>),
+        ...(q.quiz_data as unknown as Omit<Quiz, 'id'>),
       }));
       setQuizzes(parsedQuizzes);
     }

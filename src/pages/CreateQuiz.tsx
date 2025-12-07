@@ -149,8 +149,8 @@ const CreateQuiz = () => {
 
     const { error } = await supabase.from('quizzes').insert({
       user_id: user?.id,
-      quiz_data: quizData,
-    });
+      quiz_data: quizData as unknown as Record<string, unknown>,
+    } as never);
 
     if (error) {
       toast.error('Failed to save quiz');
