@@ -380,7 +380,7 @@ const HostQuiz = () => {
                           <div
                             key={opt.oid}
                             className={`p-3 sm:p-4 border-2 border-foreground text-sm sm:text-base ${
-                              currentQuestion.correct.includes(opt.oid)
+                              !questionActive && currentQuestion.correct.includes(opt.oid)
                                 ? 'bg-success/20 border-success'
                                 : 'bg-background'
                             }`}

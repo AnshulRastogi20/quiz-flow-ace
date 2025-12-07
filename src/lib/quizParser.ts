@@ -94,12 +94,18 @@ export const parseQuizDocument = (text: string, teacherName: string = 'Teacher')
     const optionPattern = /([A-Z])[\.\)]\s*(.+?)(?=(?:[A-Z][\.\)]|\[|$|\(time|\(\+))/gs;
     const options: QuizOption[] = [];
     let optionMatch;
+    const seenOptionIds = new Set<string>();
     
     const cleanContent = qContent.replace(/\[Answer:[^\]]+\]/gi, '').replace(/✓/g, '');
     
     while ((optionMatch = optionPattern.exec(cleanContent)) !== null) {
+      const oid = optionMatch[1];
+      // Skip duplicate option IDs
+      if (seenOptionIds.has(oid)) continue;
+      seenOptionIds.add(oid);
+      
       options.push({
-        oid: optionMatch[1],
+        oid,
         text: optionMatch[2].trim(),
       });
     }
