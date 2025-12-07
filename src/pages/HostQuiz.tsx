@@ -8,6 +8,7 @@ import { Leaderboard } from '@/components/quiz/Leaderboard';
 import { Timer } from '@/components/ui/timer';
 import { toast } from 'sonner';
 import { Quiz, QuizParticipant } from '@/types/quiz';
+import { DbQuiz, DbQuizParticipant } from '@/types/database';
 import { Zap, ArrowLeft, Play, Pause, SkipForward, StopCircle, Users, Download } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 
@@ -38,22 +39,24 @@ const HostQuiz = () => {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
+            const data = payload.new as unknown as DbQuizParticipant;
             const newParticipant: QuizParticipant = {
-              participantId: payload.new.id,
-              displayName: payload.new.display_name,
-              score: payload.new.score || 0,
-              correctCount: payload.new.correct_count || 0,
-              joinedAt: payload.new.joined_at,
+              participantId: data.id,
+              displayName: data.display_name,
+              score: data.score || 0,
+              correctCount: data.correct_count || 0,
+              joinedAt: data.joined_at,
             };
             setParticipants((prev) => [...prev, newParticipant]);
           } else if (payload.eventType === 'UPDATE') {
+            const data = payload.new as unknown as DbQuizParticipant;
             setParticipants((prev) =>
               prev.map((p) =>
-                p.participantId === payload.new.id
+                p.participantId === data.id
                   ? {
                       ...p,
-                      score: payload.new.score || 0,
-                      correctCount: payload.new.correct_count || 0,
+                      score: data.score || 0,
+                      correctCount: data.correct_count || 0,
                     }
                   : p
               )
@@ -103,8 +106,9 @@ const HostQuiz = () => {
       toast.error('Quiz not found');
       navigate('/dashboard');
     } else {
-      const quizData = data.quiz_data as Omit<Quiz, 'id'>;
-      setQuiz({ id: data.id, ...quizData });
+      const typedData = data as unknown as DbQuiz;
+      const quizData = typedData.quiz_data as unknown as Omit<Quiz, 'id'>;
+      setQuiz({ id: typedData.id, ...quizData });
       setCurrentQuestionIndex(quizData.currentQuestionIndex ?? -1);
     }
     setIsLoading(false);
@@ -119,8 +123,9 @@ const HostQuiz = () => {
       .eq('quiz_id', id);
 
     if (data) {
+      const typedData = data as unknown as DbQuizParticipant[];
       setParticipants(
-        data.map((p) => ({
+        typedData.map((p) => ({
           participantId: p.id,
           displayName: p.display_name,
           score: p.score || 0,
@@ -139,7 +144,7 @@ const HostQuiz = () => {
     
     await supabase
       .from('quizzes')
-      .update({ quiz_data: quizData })
+      .update({ quiz_data: quizData as unknown as Record<string, unknown> } as never)
       .eq('id', id);
     
     setQuiz(updatedQuiz);

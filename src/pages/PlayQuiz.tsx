@@ -7,7 +7,8 @@ import { Leaderboard } from '@/components/quiz/Leaderboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Quiz, QuizParticipant, QuizQuestion } from '@/types/quiz';
+import { Quiz, QuizParticipant } from '@/types/quiz';
+import { DbQuiz, DbQuizParticipant } from '@/types/database';
 import { Trophy, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -78,22 +79,24 @@ const PlayQuiz = () => {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
+            const data = payload.new as unknown as DbQuizParticipant;
             const newParticipant: QuizParticipant = {
-              participantId: payload.new.id,
-              displayName: payload.new.display_name,
-              score: payload.new.score || 0,
-              correctCount: payload.new.correct_count || 0,
-              joinedAt: payload.new.joined_at,
+              participantId: data.id,
+              displayName: data.display_name,
+              score: data.score || 0,
+              correctCount: data.correct_count || 0,
+              joinedAt: data.joined_at,
             };
             setParticipants((prev) => [...prev, newParticipant]);
           } else if (payload.eventType === 'UPDATE') {
+            const data = payload.new as unknown as DbQuizParticipant;
             setParticipants((prev) =>
               prev.map((p) =>
-                p.participantId === payload.new.id
+                p.participantId === data.id
                   ? {
                       ...p,
-                      score: payload.new.score || 0,
-                      correctCount: payload.new.correct_count || 0,
+                      score: data.score || 0,
+                      correctCount: data.correct_count || 0,
                     }
                   : p
               )
@@ -125,7 +128,8 @@ const PlayQuiz = () => {
       return;
     }
 
-    const quizParsed = quizData.quiz_data as Omit<Quiz, 'id'>;
+    const typedQuizData = quizData as unknown as DbQuiz;
+    const quizParsed = typedQuizData.quiz_data as unknown as Omit<Quiz, 'id'>;
     
     // Validate token
     if (quizParsed.join.token !== token && !token.includes(quizParsed.join.token)) {
@@ -134,7 +138,7 @@ const PlayQuiz = () => {
       return;
     }
 
-    setQuiz({ id: quizData.id, ...quizParsed });
+    setQuiz({ id: typedQuizData.id, ...quizParsed });
     setQuizStatus(quizParsed.status);
     setCurrentQuestionIndex(quizParsed.currentQuestionIndex ?? -1);
 
@@ -145,8 +149,9 @@ const PlayQuiz = () => {
       .eq('quiz_id', id);
 
     if (participantsData) {
+      const typedParticipants = participantsData as unknown as DbQuizParticipant[];
       setParticipants(
-        participantsData.map((p) => ({
+        typedParticipants.map((p) => ({
           participantId: p.id,
           displayName: p.display_name,
           score: p.score || 0,
@@ -154,41 +159,43 @@ const PlayQuiz = () => {
           joinedAt: p.joined_at,
         }))
       );
-    }
 
-    // Check if name is unique
-    const existingNames = participantsData?.map((p) => p.display_name.toLowerCase()) || [];
-    let finalName = displayName;
-    let suffix = 1;
+      // Check if name is unique
+      const existingNames = typedParticipants.map((p) => p.display_name.toLowerCase());
+      let finalName = displayName;
+      let suffix = 1;
+      
+      while (existingNames.includes(finalName.toLowerCase())) {
+        finalName = `${displayName}${suffix}`;
+        suffix++;
+      }
+
+      if (finalName !== displayName) {
+        toast.info(`Name taken, joining as ${finalName}`);
+      }
+
+      // Join as participant
+      const { data: newParticipant, error: joinError } = await supabase
+        .from('quiz_participants')
+        .insert({
+          quiz_id: id,
+          display_name: finalName,
+          score: 0,
+          correct_count: 0,
+        } as never)
+        .select()
+        .single();
+
+      if (joinError || !newParticipant) {
+        toast.error('Failed to join quiz');
+        navigate('/join');
+        return;
+      }
+
+      const typedNewParticipant = newParticipant as unknown as DbQuizParticipant;
+      setParticipantId(typedNewParticipant.id);
+    }
     
-    while (existingNames.includes(finalName.toLowerCase())) {
-      finalName = `${displayName}${suffix}`;
-      suffix++;
-    }
-
-    if (finalName !== displayName) {
-      toast.info(`Name taken, joining as ${finalName}`);
-    }
-
-    // Join as participant
-    const { data: newParticipant, error: joinError } = await supabase
-      .from('quiz_participants')
-      .insert({
-        quiz_id: id,
-        display_name: finalName,
-        score: 0,
-        correct_count: 0,
-      })
-      .select()
-      .single();
-
-    if (joinError) {
-      toast.error('Failed to join quiz');
-      navigate('/join');
-      return;
-    }
-
-    setParticipantId(newParticipant.id);
     setIsLoading(false);
   };
 
@@ -228,7 +235,7 @@ const PlayQuiz = () => {
       .update({
         score: newScore,
         correct_count: newCorrectCount,
-      })
+      } as never)
       .eq('id', participantId);
 
     // Save answer
@@ -239,7 +246,7 @@ const PlayQuiz = () => {
       selected_options: selectedOptions,
       is_correct: isCorrect,
       points_earned: pointsEarned,
-    });
+    } as never);
   }, [quiz, participantId, currentQuestionIndex, selectedOptions, score, correctCount, id]);
 
   if (isLoading) {

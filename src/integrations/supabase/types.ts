@@ -14,7 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      quiz_answers: {
+        Row: {
+          answered_at: string
+          id: string
+          is_correct: boolean | null
+          participant_id: string
+          points_earned: number | null
+          question_id: string
+          quiz_id: string
+          selected_options: string[] | null
+        }
+        Insert: {
+          answered_at?: string
+          id?: string
+          is_correct?: boolean | null
+          participant_id: string
+          points_earned?: number | null
+          question_id: string
+          quiz_id: string
+          selected_options?: string[] | null
+        }
+        Update: {
+          answered_at?: string
+          id?: string
+          is_correct?: boolean | null
+          participant_id?: string
+          points_earned?: number | null
+          question_id?: string
+          quiz_id?: string
+          selected_options?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_participants: {
+        Row: {
+          correct_count: number | null
+          display_name: string
+          id: string
+          joined_at: string
+          quiz_id: string
+          score: number | null
+        }
+        Insert: {
+          correct_count?: number | null
+          display_name: string
+          id?: string
+          joined_at?: string
+          quiz_id: string
+          score?: number | null
+        }
+        Update: {
+          correct_count?: number | null
+          display_name?: string
+          id?: string
+          joined_at?: string
+          quiz_id?: string
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_participants_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          id: string
+          quiz_data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          quiz_data: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          quiz_data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
